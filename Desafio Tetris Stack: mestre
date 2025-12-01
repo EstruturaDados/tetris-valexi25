@@ -1,0 +1,141 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+// --- CONSTANTES E DEFINIÇÕES ---
+#define TAM_FILA 5    // Capacidade fixa da fila
+#define TAM_PILHA 3   // Capacidade fixa da reserva
+
+// Estrutura da Peça
+typedef struct {
+    char nome; // Tipo: 'I', 'O', 'T', 'L'
+    int id;    // Identificador único
+} Peca;
+
+// Estrutura de Fila Circular
+typedef struct {
+    Peca itens[TAM_FILA];
+    int inicio; // Índice da frente
+    int fim;    // Índice de inserção
+    int qtd;    // Quantidade atual
+} Fila;
+
+// Estrutura de Pilha (LIFO)
+typedef struct {
+    Peca itens[TAM_PILHA];
+    int topo;   // Índice do topo (-1 se vazia)
+} Pilha;
+
+// Variável global para gerar IDs únicos sequenciais
+int idGlobal = 0;
+
+// --- PROTÓTIPOS DAS FUNÇÕES ---
+Peca gerarPeca();
+void inicializarFila(Fila *f);
+void inicializarPilha(Pilha *p);
+
+// Operações Básicas
+void enfileirar(Fila *f);       // Adiciona ao fim e gera peça
+Peca desenfileirar(Fila *f);    // Remove do início
+int push(Pilha *p, Peca item);  // Insere no topo
+int pop(Pilha *p, Peca *item);  // Remove do topo
+
+// Operações Avançadas (Trocas)
+void trocarSimples(Fila *f, Pilha *p);
+void trocarBloco(Fila *f, Pilha *p);
+
+// Visualização
+void exibirEstado(Fila f, Pilha p);
+
+// --- FUNÇÃO PRINCIPAL ---
+int main() {
+    Fila fila;
+    Pilha pilha;
+    int opcao;
+    Peca temp;
+
+    srand(time(NULL)); // Semente aleatória
+
+    // Inicialização
+    inicializarFila(&fila);
+    inicializarPilha(&pilha);
+
+    printf("=== TETRIS STACK: NIVEL AVANCADO ===\n");
+
+    do {
+        exibirEstado(fila, pilha);
+
+        printf("\nOpcoes disponiveis:\n");
+        printf("1 - Jogar peca (Remove da fila)\n");
+        printf("2 - Reservar peca (Fila -> Pilha)\n");
+        printf("3 - Usar reserva (Remove da pilha)\n");
+        printf("4 - Troca Simples (Frente Fila <-> Topo Pilha)\n");
+        printf("5 - Troca Multipla (3 da Fila <-> 3 da Pilha)\n");
+        printf("0 - Sair\n");
+        printf("Opcao: ");
+        scanf("%d", &opcao);
+
+        printf("\n--------------------------------------------------\n");
+        switch(opcao) {
+            case 1: // Jogar
+                temp = desenfileirar(&fila);
+                printf(">>> Peca JOGADA: [%c %d]\n", temp.nome, temp.id);
+                enfileirar(&fila); // Repõe automaticamente
+                break;
+
+            case 2: // Reservar
+                if (pilha.topo < TAM_PILHA - 1) {
+                    temp = desenfileirar(&fila);
+                    push(&pilha, temp);
+                    printf(">>> Peca [%c %d] enviada para RESERVA.\n", temp.nome, temp.id);
+                    enfileirar(&fila); // Repõe automaticamente
+                } else {
+                    printf("[ERRO] A Pilha de Reserva esta cheia!\n");
+                }
+                break;
+
+            case 3: // Usar Reserva
+                if (pop(&pilha, &temp)) {
+                    printf(">>> Peca da RESERVA utilizada: [%c %d]\n", temp.nome, temp.id);
+                } else {
+                    printf("[ERRO] A Reserva esta vazia.\n");
+                }
+                break;
+
+            case 4: // Troca Simples (1x1)
+                trocarSimples(&fila, &pilha);
+                break;
+
+            case 5: // Troca Múltipla (3x3)
+                trocarBloco(&fila, &pilha);
+                break;
+
+            case 0:
+                printf("Encerrando sistema...\n");
+                break;
+
+            default:
+                printf("Opcao invalida!\n");
+        }
+        printf("--------------------------------------------------\n");
+
+    } while(opcao != 0);
+
+    return 0;
+}
+
+// --- IMPLEMENTAÇÃO DAS FUNÇÕES ---
+
+Peca gerarPeca() {
+    Peca p;
+    char tipos[] = {'I', 'O', 'T', 'L', 'S', 'Z', 'J'};
+    p.nome = tipos[rand() % 7];
+    p.id = idGlobal++;
+    return p;
+}
+
+// Inicializa a fila já cheia
+void inicializarFila(Fila *f) {
+    f->inicio = 0;
+    f->fim = 0;
+    f->qtd = 0;
